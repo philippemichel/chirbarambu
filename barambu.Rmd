@@ -1,0 +1,157 @@
+---
+title: "Chirurgie bariatrique ambulatoire"
+author: "Philippe MICHEL"
+date: "`r format(Sys.Date(),'%d %B %Y')`"
+output:
+  word_document:
+    toc: yes
+  pdf_document:
+    keep_tex: yes
+    latex_engine: lualatex
+    toc: yes
+    citation_package: biblatex
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+    toc: yes
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+    theme: lumen
+    anchor_sections: yes
+    citation_package: biblatex
+subtitle: ''
+editor_options:
+  chunk_output_type: console
+bibliography: stat.bib
+biblio-style: plain
+link-citations: yes
+---
+
+```{r setup, include= FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, cache = FALSE,
+# knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+#
+ fig.width = 7,
+ fig.asp = 0.8,
+ out.width = "100%"
+)
+```
+
+```{r info}
+library(prettydoc)
+library(forcats)
+library(stringr)
+# library(treemap)
+library(missMDA)
+library(FactoMineR)
+library(epiDisplay)
+library(factoextra)
+library(baseph)
+library(knitr)
+library(finalfit)
+library(Hmisc)
+library(tidyr)
+library(ggplot2)
+library(kableExtra)
+library(forestmodel)
+library(lubridate)
+library(dplyr)
+library(table1)
+library(janitor)
+library(parameters)
+library(see)
+library(tidyverse)
+# sessionInfo()
+```
+
+```{r import}
+df <- debutph("data/data_bariatrique.csv")
+df$imc<- cut(df$imc,
+  include.lowest = FALSE,
+  right = FALSE,
+  dig.lab = 4,
+  breaks = c(35,40,100),
+  labels = c("Obésité sévère","Obésité maladive")
+)
+```
+
+# Description
+   La base de donnée comprend `r nrow(df)` cas pour `r ncol(df)-1`
+   variables. En raison du  du faible nombre de cas des regroupements ont été réalisés.
+
+```{r tab1}
+table1(~ age   +  sexe +  imc +  hta +diabete +  sas + dyslipidemie +type.chirurgie +conversion.en.hospitalisation +  conversion.pour.douleur +  conversion.autre.cause+ rehospitalisation + reoperation +  passage.urgences + complications + mortalite +pas.chirurgie.premiere, data = df)
+```
+
+```{r pyr}
+pyramid(age = df$age, sex = df$sexe, binwidth = 10, col.gender = c("pink","blue"))
+```
+
+```{r bar}
+barsimpleph(df$imc,"IMC")
+```
+## Analyse factorielle
+
+On tente une analyse en composantes principales malgré ke faible
+nombre de cas. 
+
+```{r estim}
+dfa <- df[,-c(1,9,15,16,18)]
+dfa$age <- cut(dfa$age,c(0,20,40,60,100))
+mtt <- MCA(dfa, graph = FALSE)
+fviz_mca_var(mtt, choice = "var" )
+fviz_mca_ind(mtt, label = "none", habillage = 12, title = "Réhospitalisation", addEllipses = FALSE)
+fviz_mca_ind(mtt, label = "none", habillage = 7, title = "DL", addEllipses = FALSE)
+# HCPC(mtt,nb.clust = 3 )
+df$sas <- fct_relevel(df$sas,"non")
+```
+
+Les critères permettants de classer les patients sont la chirurgie première & DL. 
+
+# Critères prédictifs
+
+## Conversion en hospitalisation classique
+
+On cherche des critères prédictifs de conversion en hospitalisation classique, quelque soit la cause. Vu la taille de l'échantillon on ne trouve rien. 
+
+```{r conv1}
+tabcph(df[,c(2:8,10,11,19)], "conversion.en.hospitalisation")
+
+ll <- glm(conversion.en.hospitalisation~diabete+ sas + dyslipidemie +type.chirurgie.2 + pas.chirurgie.premiere, data = df, family= "binomial")
+forest_model(ll)
+```
+
+# Réhospitalisation
+
+```{r rhosp1}
+tabcph(df[,c(2:8,10,11,19,14)], "rehospitalisation")
+
+ll <- glm(rehospitalisation ~ conversion.en.hospitalisation +type.chirurgie.2 + pas.chirurgie.premiere, data = df, family= "binomial")
+forest_model(ll)
+```
+
+Aucun critère clinique ne semble prédictif d'une réhospitalisation. Seule la chirurgie première semble liée à la réhospitalisation. résultat fragile vu la taille de l'échantillon (3 patients ont été réhospitalisés, 5 n'était pas en chirurgie première)
+
+
+ # Technique 
+
+**Petit paragraphe à ajouter en fin de “matériel & méthode”**
+
+*Pas fini !!!*
+
+Les données discrètes ont été décrites par leur fréquence exprimée en pourcentage avec son intervalle de confiance à 95 % et ont été comparées par le test exact de Fisher vu la faible effectif. Les intervalles de confiance n’ont été réalisés qu’après transformation angulaire. Les données numériques ont été décrites par leur moyenne (avec son intervalle de confiance à 95 % calculé par bootstrap) et l’écart-type. Les données continues ont été comparées par le test de Student après vérification de l’égalité des variances. L’analyse factorielle a été réalisée en analyse des correspondances multiples après imputation des données manquantes, possible ici en raison du faible nombre de celles-ci.
+Les statistiques ont été réalisées grâce au logiciel R[@rstat] avec en particulier les packages du Tidyverse[@tidy] & factoMineR[@facto].
+
+# References
+
+
+
+
+
+
+
+
+
+
