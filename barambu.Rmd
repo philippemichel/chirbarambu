@@ -68,12 +68,13 @@ library(tidyverse)
 
 ```{r import}
 df <- debutph("data/data_bariatrique.csv")
-df$imc<- cut(df$imc,
+df$imc <- cut(
+  df$imc,
   include.lowest = FALSE,
   right = FALSE,
   dig.lab = 4,
-  breaks = c(35,40,100),
-  labels = c("Obésité sévère","Obésité maladive")
+  breaks = c(35, 40, 100),
+  labels = c("Obésité sévère", "Obésité maladive")
 )
 ```
 
@@ -82,15 +83,25 @@ df$imc<- cut(df$imc,
    variables. En raison du  du faible nombre de cas des regroupements ont été réalisés.
 
 ```{r tab1}
-table1(~ age   +  sexe +  imc +  hta +diabete +  sas + dyslipidemie +type.chirurgie +conversion.en.hospitalisation +  conversion.pour.douleur +  conversion.autre.cause+ rehospitalisation + reoperation +  passage.urgences + complications + mortalite +pas.chirurgie.premiere, data = df)
+table1(
+  ~ age   +  sexe +  imc +  hta + diabete +  sas + dyslipidemie + type.chirurgie +
+    conversion.en.hospitalisation +  conversion.pour.douleur +  conversion.autre.cause + rehospitalisation + reoperation +  passage.urgences + complications + mortalite +
+    pas.chirurgie.premiere,
+  data = df
+)
 ```
 
 ```{r pyr}
-pyramid(age = df$age, sex = df$sexe, binwidth = 10, col.gender = c("pink","blue"))
+pyramid(
+  age = df$age,
+  sex = df$sexe,
+  binwidth = 10,
+  col.gender = c("pink", "blue")
+)
 ```
 
 ```{r bar}
-barsimpleph(df$imc,"IMC")
+barsimpleph(df$imc, "IMC")
 ```
 ## Analyse factorielle
 
@@ -98,14 +109,26 @@ On tente une analyse en composantes principales malgré ke faible
 nombre de cas. 
 
 ```{r estim}
-dfa <- df[,-c(1,9,15,16,18)]
-dfa$age <- cut(dfa$age,c(0,20,40,60,100))
+dfa <- df[, -c(1, 9, 15, 16, 18)]
+dfa$age <- cut(dfa$age, c(0, 20, 40, 60, 100))
 mtt <- MCA(dfa, graph = FALSE)
-fviz_mca_var(mtt, choice = "var" )
-fviz_mca_ind(mtt, label = "none", habillage = 12, title = "Réhospitalisation", addEllipses = FALSE)
-fviz_mca_ind(mtt, label = "none", habillage = 7, title = "DL", addEllipses = FALSE)
+fviz_mca_var(mtt, choice = "var")
+fviz_mca_ind(
+  mtt,
+  label = "none",
+  habillage = 12,
+  title = "Réhospitalisation",
+  addEllipses = FALSE
+)
+fviz_mca_ind(
+  mtt,
+  label = "none",
+  habillage = 7,
+  title = "DL",
+  addEllipses = FALSE
+)
 # HCPC(mtt,nb.clust = 3 )
-df$sas <- fct_relevel(df$sas,"non")
+df$sas <- fct_relevel(df$sas, "non")
 ```
 
 Les critères permettants de classer les patients sont la chirurgie première & DL. 
@@ -117,18 +140,28 @@ Les critères permettants de classer les patients sont la chirurgie première & 
 On cherche des critères prédictifs de conversion en hospitalisation classique, quelque soit la cause. Vu la taille de l'échantillon on ne trouve rien. 
 
 ```{r conv1}
-tabcph(df[,c(2:8,10,11,19)], "conversion.en.hospitalisation")
+tabcph(df[, c(2:8, 10, 11, 19)], "conversion.en.hospitalisation")
 
-ll <- glm(conversion.en.hospitalisation~diabete+ sas + dyslipidemie +type.chirurgie.2 + pas.chirurgie.premiere, data = df, family= "binomial")
+ll <-
+  glm(
+    conversion.en.hospitalisation ~ diabete + sas + dyslipidemie + type.chirurgie.2 + pas.chirurgie.premiere,
+    data = df,
+    family = "binomial"
+  )
 forest_model(ll)
 ```
 
 # Réhospitalisation
 
 ```{r rhosp1}
-tabcph(df[,c(2:8,10,11,19,14)], "rehospitalisation")
+tabcph(df[, c(2:8, 10, 11, 19, 14)], "rehospitalisation")
 
-ll <- glm(rehospitalisation ~ conversion.en.hospitalisation +type.chirurgie.2 + pas.chirurgie.premiere, data = df, family= "binomial")
+ll <-
+  glm(
+    rehospitalisation ~ conversion.en.hospitalisation + type.chirurgie.2 + pas.chirurgie.premiere,
+    data = df,
+    family = "binomial"
+  )
 forest_model(ll)
 ```
 
